@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+:root {
+  /* 60% Light Cherry Background & Surfaces */
+  --bg-cherry-main: #FDF0F3;
+  --bg-cherry-subtle: #F8E3E8;
+  --bg-card: #FFFFFF;
+  --text-primary: #2D1823;
+  --text-muted: #6E5360;
+  --border-neutral: #F0D0D9;
+
+  /* 30% Dark Cherry Primary */
+  --cherry-main: #581C38;
+  --cherry-dark: #3F1227;
+  --cherry-deep: #4A142E;
+  --cherry-surface: #F7E9EE;
+  --cherry-border: rgba(88, 28, 56, 0.2);
+
+  /* 10% Vivid Cherry Accent (Replaces Gold) */
+  --cherry-accent: #8C254F;
+  --cherry-accent-hover: #751E41;
+  --cherry-accent-light: #FCEEF3;
+  --sage-accent: #788B70;
+  --sage-light: #F0F4EF;
+}
+
+body {
+  background-color: var(--bg-cherry-main);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+html, body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+/* Prevent iOS Safari Auto-Zoom on Input Focus (Requires font-size >= 16px) */
+@layer base {
+  input, select, textarea {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
+}
+
+input, select, textarea {
+  font-size: 16px !important;
+  touch-action: manipulation;
+}
+
+/* Luxury Theme Card & Input Utilities */
+.theme-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-neutral);
+  box-shadow: 0 15px 35px rgba(88, 28, 56, 0.07), 0 5px 15px rgba(0, 0, 0, 0.02);
+}
+
+.theme-input {
+  background: #FFFFFF;
+  border: 1.5px solid #EECBD4;
+  color: var(--text-primary);
+  font-size: 16px !important;
+  transition: all 0.2s ease-in-out;
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--cherry-accent);
+  box-shadow: 0 0 0 4px rgba(140, 37, 79, 0.15);
+}
+
+/* Radial Background Glows */
+.bg-glow-berry {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(88, 28, 56, 0.12) 0%, rgba(253, 240, 243, 0) 70%);
+  pointer-events: none;
+}
+
+.bg-glow-accent {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(140, 37, 79, 0.12) 0%, rgba(253, 240, 243, 0) 70%);
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes slideUpModal {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInOverlay {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeInOverlay 0.3s ease-out forwards;
+}
