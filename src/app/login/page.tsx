@@ -7,10 +7,12 @@ import { Mail, Phone, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Che
 import AuthLayout from '@/components/AuthLayout';
 import { authAPI } from '@/Api/api';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { showToast } = useToast();
 
   // Mode: 'phone' | 'email'
   const [loginMode, setLoginMode] = useState<'phone' | 'email'>('email');
@@ -24,7 +26,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -46,26 +47,31 @@ export default function LoginPage() {
     const identifier = loginMode === 'phone' ? formData.phone.trim() : formData.email.trim();
 
     if (!identifier) {
-      setError(loginMode === 'phone' ? 'Please enter your 10-digit mobile number.' : 'Please enter your email address.');
+      const msg = loginMode === 'phone' ? 'Please enter your 10-digit mobile number.' : 'Please enter your email address.';
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
     if (loginMode === 'phone') {
       const cleanPhone = identifier.replace(/\D/g, '');
       if (cleanPhone.length !== 10) {
-        setError('Please enter a valid 10-digit mobile number.');
+        const msg = 'Please enter a valid 10-digit mobile number.';
+        setError(msg);
+        showToast(msg, 'error');
         return;
       }
     }
 
     if (!formData.password) {
-      setError('Please enter your password.');
+      const msg = 'Please enter your password.';
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
 
     try {
       const response = await authAPI.login({
@@ -77,15 +83,17 @@ export default function LoginPage() {
       if (response.success && response.data) {
         const { token, user, message } = response.data;
         login(token || response.data.accessToken || 'mock_token', user || { name: 'User', email: identifier });
-        setSuccess(message || 'Login successful! Redirecting to dashboard...');
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1200);
+        showToast(message || 'Login successful! Welcome back.', 'success');
+        router.push('/');
       } else {
-        setError(response.message || 'Invalid credentials. Please check your information and try again.');
+        const errMsg = response.message || 'Invalid credentials. Please check your information and try again.';
+        setError(errMsg);
+        showToast(errMsg, 'error');
       }
     } catch (err: any) {
-      setError('An unexpected error occurred. Please try again.');
+      const errMsg = 'An unexpected error occurred. Please try again.';
+      setError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -109,14 +117,6 @@ export default function LoginPage() {
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-start gap-2.5 animate-fadeIn">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
                 <div>{error}</div>
-              </div>
-            )}
-
-            {/* Success Alert */}
-            {success && (
-              <div className="p-3 rounded-xl bg-[#F6EDF2] border border-[#8C254F]/30 text-[#581C38] text-xs sm:text-sm flex items-start gap-2.5 animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#8C254F] shrink-0 mt-0.5" />
-                <div>{success}</div>
               </div>
             )}
 

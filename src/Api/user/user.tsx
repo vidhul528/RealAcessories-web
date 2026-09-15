@@ -20,6 +20,12 @@ export interface VerifyOtpPayload {
   otp: string;
 }
 
+export interface ConfirmPasswordPayload {
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export interface ForgetPasswordPayload {
   email: string;
 }
@@ -78,6 +84,15 @@ export const userAPI = {
       return { success: true, data: response.data, message: response.data?.message };
     } catch (error: any) {
       return { success: false, message: error.message || 'OTP verification failed', error };
+    }
+  },
+
+  confirmPassword: async (payload: ConfirmPasswordPayload) => {
+    try {
+      const response = await api.post('/auth/confirm-password', payload);
+      return { success: true, data: response.data, message: response.data?.message };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Confirm password failed', error };
     }
   },
 

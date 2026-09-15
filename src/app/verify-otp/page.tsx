@@ -16,6 +16,13 @@ function OTPForm() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Step 2 Password State
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -23,7 +30,7 @@ function OTPForm() {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
-    if (resendTimer > 0) {
+    if (resendTimer > 0 && !isOtpVerified) {
       const timer = setInterval(() => {
         setResendTimer((prev) => prev - 1);
       }, 1000);
@@ -31,7 +38,7 @@ function OTPForm() {
     } else {
       setCanResend(true);
     }
-  }, [resendTimer]);
+  }, [resendTimer, isOtpVerified]);
 
   const handleOtpChange = (index: number, value: string) => {
     if (isNaN(Number(value))) return;
@@ -67,7 +74,8 @@ function OTPForm() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Verify OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = otp.join('');
 
@@ -87,12 +95,50 @@ function OTPForm() {
       });
 
       if (response.success) {
-        setSuccess('OTP verified successfully! Account is now active.');
+        setIsOtpVerified(true);
+        setSuccess('OTP verified successfully! Please set your password to activate your account.');
+      } else {
+        setError(response.message || 'Invalid or expired OTP code. Please check and try again.');
+      }
+    } catch (err: any) {
+      setError('An unexpected error occurred during OTP verification. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Confirm Password & Activate
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Password and Confirm Password do not match.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await authAPI.confirmPassword({
+        email: email.trim(),
+        password,
+        confirmPassword,
+      });
+
+      if (response.success) {
+        setSuccess('Password set successfully! Your account is now active.');
         setTimeout(() => {
           router.push('/login');
         }, 1500);
       } else {
-        setError(response.message || 'Invalid or expired OTP code. Please check and try again.');
+        setError(response.message || 'Failed to set password. Please try again.');
       }
     } catch (err: any) {
       setError('An unexpected error occurred. Please try again.');
@@ -109,7 +155,7 @@ function OTPForm() {
 
   return (
     <AuthLayout>
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Error Alert */}
         {error && (
           <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-start gap-2.5 animate-fadeIn">
@@ -126,78 +172,161 @@ function OTPForm() {
           </div>
         )}
 
-        {!initialEmail && (
-          <div>
-            <label className="block text-[11px] sm:text-xs font-bold text-[#581C38] uppercase tracking-wider mb-1 sm:mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              required
-              className="theme-input w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-base sm:text-sm focus:outline-none placeholder:text-xs placeholder:text-[#A08894]"
-            />
-          </div>
-        )}
+        {/* STEP 1: OTP VERIFICATION FORM */}
+        {!isOtpVerified ? (
+          <form onSubmit={handleVerifyOtp} className="space-y-4 sm:space-y-6">
+            {!initialEmail && (
+              <div>
+                <label className="block text-[11px] sm:text-xs font-bold text-[#581C38] uppercase tracking-wider mb-1 sm:mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  className="theme-input w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl text-base sm:text-sm focus:outline-none placeholder:text-xs placeholder:text-[#A08894]"
+                />
+              </div>
+            )}
 
-        {/* 6-Digit OTP Inputs (Fitted for 320px screens) */}
-        <div className="flex justify-center items-center gap-1.5 sm:gap-3 my-3 sm:my-4">
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => {
-                inputRefs.current[index] = el;
-              }}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleOtpChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              onPaste={handlePaste}
-              className="w-9 h-11 sm:w-13 sm:h-14 text-center text-base sm:text-xl font-bold theme-input rounded-lg sm:rounded-xl focus:border-[#8C254F] focus:ring-2 focus:ring-[#8C254F]/20 text-[#581C38] p-0"
-            />
-          ))}
-        </div>
+            {/* 6-Digit OTP Inputs */}
+            <div className="flex justify-center items-center gap-1.5 sm:gap-3 my-3 sm:my-4">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={handlePaste}
+                  className="w-9 h-11 sm:w-13 sm:h-14 text-center text-base sm:text-xl font-bold theme-input rounded-lg sm:rounded-xl focus:border-[#8C254F] focus:ring-2 focus:ring-[#8C254F]/20 text-[#581C38] p-0"
+                />
+              ))}
+            </div>
 
-        {/* Resend Timer */}
-        <div className="text-center text-xs sm:text-sm text-[#6E5360]">
-          Didn&apos;t receive code?{' '}
-          {canResend ? (
+            {/* Resend Timer */}
+            <div className="text-center text-xs sm:text-sm text-[#6E5360]">
+              Didn&apos;t receive code?{' '}
+              {canResend ? (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  className="text-[#8C254F] hover:text-[#581C38] font-bold inline-flex items-center gap-1 ml-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Resend OTP
+                </button>
+              ) : (
+                <span className="text-[#A08894] font-medium ml-1">
+                  Resend in <span className="text-[#581C38] font-mono font-bold">{resendTimer}s</span>
+                </span>
+              )}
+            </div>
+
+            {/* Verify & Activate Button */}
             <button
-              type="button"
-              onClick={handleResend}
-              className="text-[#8C254F] hover:text-[#581C38] font-bold inline-flex items-center gap-1 ml-1 cursor-pointer"
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 sm:py-3.5 px-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#7B2A51] via-[#581C38] to-[#401227] text-white font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-[#581C38]/25 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Resend OTP
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Verify & Activate</span>
+                </>
+              )}
             </button>
-          ) : (
-            <span className="text-[#A08894] font-medium ml-1">
-              Resend in <span className="text-[#581C38] font-mono font-bold">{resendTimer}s</span>
-            </span>
-          )}
-        </div>
+          </form>
+        ) : (
+          /* STEP 2: SET PASSWORD FORM (Revealed after successful OTP verification) */
+          <form onSubmit={handleSetPassword} className="space-y-4 sm:space-y-5 animate-fadeIn">
+            {/* Password Input */}
+            <div className="relative pt-1">
+              <label className="absolute top-1 left-3 bg-white px-1.5 text-[11px] font-semibold text-[#581C38] transition-all z-10">
+                Create Password <span className="text-[#8C254F]">*</span>
+              </label>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 sm:py-3.5 px-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#7B2A51] via-[#581C38] to-[#401227] text-white font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-[#581C38]/25 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              <span>Verifying...</span>
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Verify & Activate</span>
-            </>
-          )}
-        </button>
+              <div className="flex items-center border-2 border-[#581C38]/40 focus-within:border-[#8C254F] rounded-xl px-3 py-3 transition-colors bg-white shadow-sm mt-3">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="At least 6 characters"
+                  required
+                  className="w-full text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="text-gray-400 hover:text-[#581C38] transition-colors ml-2 cursor-pointer shrink-0"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password Input */}
+            <div className="relative pt-1">
+              <label className="absolute top-1 left-3 bg-white px-1.5 text-[11px] font-semibold text-[#581C38] transition-all z-10">
+                Confirm Password <span className="text-[#8C254F]">*</span>
+              </label>
+
+              <div className="flex items-center border-2 border-[#581C38]/40 focus-within:border-[#8C254F] rounded-xl px-3 py-3 transition-colors bg-white shadow-sm mt-3">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  placeholder="Re-enter your password"
+                  required
+                  className="w-full text-base sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="text-gray-400 hover:text-[#581C38] transition-colors ml-2 cursor-pointer shrink-0"
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            {/* Set Password & Activate Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 sm:py-3.5 px-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#7B2A51] via-[#581C38] to-[#401227] text-white font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-[#581C38]/25 hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                  <span>Setting Password...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Set Password & Activate</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
 
         <div className="pt-3 sm:pt-4 border-t border-[#F0D0D9] text-center text-xs sm:text-sm text-[#6E5360]">
           Need to change email or login?{' '}
@@ -205,7 +334,7 @@ function OTPForm() {
             Back to Login
           </Link>
         </div>
-      </form>
+      </div>
     </AuthLayout>
   );
 }

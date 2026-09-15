@@ -26,7 +26,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function BottomNav() {
   const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
 
   const toggleExpand = () => setIsExpanded((prev) => !prev);
 
@@ -40,8 +48,8 @@ export default function BottomNav() {
     {
       name: 'Account',
       icon: User,
-      href: isAuthenticated ? '/dashboard' : '/login',
-      isActive: pathname === '/login' || pathname === '/register' || pathname === '/dashboard',
+      href: isAuthenticated ? '/profile' : '/login',
+      isActive: pathname === '/profile' || pathname === '/login' || pathname === '/register',
     },
     {
       name: 'Category',
@@ -81,8 +89,11 @@ export default function BottomNav() {
   return (
     <motion.nav
       drag="y"
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={0.15}
+      dragConstraints={{ top: -300, bottom: 0 }}
+      dragElastic={0.1}
+      dragSnapToOrigin={true}
+      animate={{ y: 0 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       onDragEnd={(_, info) => {
         if (info.offset.y < -35 || info.velocity.y < -250) {
           setIsExpanded(true);
@@ -90,7 +101,7 @@ export default function BottomNav() {
           setIsExpanded(false);
         }
       }}
-      className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#581C38] border-t border-[#8C254F]/50 shadow-[0_-8px_25px_rgba(0,0,0,0.35)] text-white select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#581C38] border-t border-[#8C254F]/50 shadow-[0_-8px_25px_rgba(0,0,0,0.35)] text-white select-none pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     >
       {/* Attached Top-Left Drag Tab: [ :::  ^ ] */}
       <button
@@ -178,7 +189,7 @@ export default function BottomNav() {
       </AnimatePresence>
 
       {/* Main 5 Navigation Items */}
-      <div className="px-2 py-2 flex items-center justify-around">
+      <div className="px-2 py-1.5 flex items-center justify-around">
         {mainNavItems.map((item) => {
           const Icon = item.icon;
           const isButton = !!item.onClick;
