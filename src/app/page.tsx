@@ -25,6 +25,14 @@ export default function HomePage() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
   // Sample Products Data
   const products = [
     {
@@ -148,15 +156,26 @@ export default function HomePage() {
                 </div>
               </Link>
 
-              <button
-                type="button"
-                onClick={() => setShowSearch(true)}
-                title="Search"
-                aria-label="Search"
-                className="p-2 rounded-xl text-white/90 hover:text-white bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSearch(true)}
+                  title="Search"
+                  aria-label="Search"
+                  className="p-2 rounded-xl text-white/90 hover:text-white bg-white/10 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+
+                {isAuthenticated && (
+                  <div
+                    title={user?.name || 'Logged in user'}
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#8C254F] to-[#a32e5d] text-white border border-white/30 flex items-center justify-center font-black text-xs sm:text-sm shadow-md select-none shrink-0"
+                  >
+                    {getInitials(user?.name)}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -219,11 +238,11 @@ export default function HomePage() {
 
                 {/* Button 4 */}
                 <Link
-                  href={isAuthenticated ? '/dashboard' : '/login'}
+                  href={isAuthenticated ? '/profile' : '/login'}
                   className="py-3 px-3 rounded-xl bg-gradient-to-r from-[#8C254F] to-[#581C38] hover:brightness-110 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-95"
                 >
                   <User className="w-3.5 h-3.5" />
-                  <span>{isAuthenticated ? 'Dashboard' : 'Sign In'}</span>
+                  <span>{isAuthenticated ? 'My Profile' : 'Sign In'}</span>
                 </Link>
               </div>
             </div>
